@@ -7,6 +7,7 @@
 class MeshPlaneDetector {
 private:
     Mesh *mesh_;
+
     Mesh::Property_map<vertex_descriptor, std::string> vertex_plane_id_map;
 
     Mesh::Property_map<face_descriptor, Point> face_centroid_map;
@@ -19,16 +20,18 @@ private:
     Vertex_set free_vertices;
 
     void erase_from_free_faces(Face_set& result);
+
+    static Metaplane min_dist_to_plane_id(const std::vector<Metaplane>& metaplanes, Point& point);
+
+    Face_set conditional_bfs(const face_descriptor& start_face, Face_set& face_set, double max_angle);
+
     void post_process_free_points(std::vector<Metaplane>& metaplanes);
-    Face_set conditional_bfs(face_descriptor& start_face, Face_set& face_set, double max_angle);
+    void post_process_free_faces(std::vector<Metaplane>& metaplanes);
 public:
-    MeshPlaneDetector(Mesh &mesh);
-    std::vector<Metaplane> detect(double min_region_size, double max_angle);
+    explicit MeshPlaneDetector(Mesh &mesh);
+    std::vector<Metaplane> detect(size_t min_region_size, double max_angle);
     void post_process(std::vector<Metaplane>& metaplanes);
-    void set_plane_color(Face_set& face_set);
-    template <typename T>
-    T get_middle_element(const std::unordered_set<T>& s);
+    void set_plane_color(const Face_set& face_set);
+    static face_descriptor get_middle_element(const Face_set& faces);
 };
-
-
 #endif

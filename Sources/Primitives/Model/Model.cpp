@@ -20,6 +20,8 @@ Model::Model(const std::string& model_filepath) {
 
 }
 
+void Model::save(const Mesh& mesh, const std::string& output_filepath) { CGAL::IO::write_polygon_mesh(output_filepath, mesh); }
+
 Mesh Model::get_mesh() {
     return mesh_;
 }
@@ -35,4 +37,3 @@ void Model::save(const std::string& output_filepath) {
         std::cerr << " Failed saving file." << std::endl;
     }
 }
-

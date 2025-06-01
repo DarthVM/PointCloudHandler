@@ -9,7 +9,7 @@
 #include <CGAL/squared_distance_3.h>
 
 
-Face_set MeshPlaneDetector::conditional_bfs(face_descriptor& start_face, Face_set& face_set, double max_angle) {
+Face_set MeshPlaneDetector::conditional_bfs(const face_descriptor& start_face, Face_set& face_set, double max_angle) {
     Face_set result;
 
     // BFS
@@ -46,13 +46,13 @@ Face_set MeshPlaneDetector::conditional_bfs(face_descriptor& start_face, Face_se
     return result;
 }
 
-std::vector<Metaplane> MeshPlaneDetector::detect(double min_region_size, double max_angle) {
+std::vector<Metaplane> MeshPlaneDetector::detect(const size_t min_region_size, const double max_angle) {
     std::cout << "Detecting metaplanes..." << std::flush;
     CGAL::Timer t;
     t.start();
 
 
-    auto faces = mesh_->faces();
+    const auto faces = mesh_->faces();
     Face_set face_set;
 
     for (auto face : faces) {
@@ -75,7 +75,6 @@ std::vector<Metaplane> MeshPlaneDetector::detect(double min_region_size, double 
             Metaplane metaplane(*mesh_, result);
             metaplane.print_info();
 
-
             metaplanes.push_back(metaplane);
         }
 
@@ -87,50 +86,68 @@ std::vector<Metaplane> MeshPlaneDetector::detect(double min_region_size, double 
 }
 
 void MeshPlaneDetector::post_process(std::vector<Metaplane>& metaplanes) {
-    std::cout << "Post-processing metaplanes..." << std::flush;
+    std::cout << "Post-processing metaplanes...";
 
     CGAL::Timer t;
     t.start();
 
-
-
-    /// 1. Compute STD \
-    /// 2. Find vertices neighbors \
-    /// 3. Compare neighbors. True - If vertex less than STD \
-    /// 4.
-    for (auto face : free_faces) {
-        auto he = mesh_->halfedge(face);
-        auto vertices = CGAL::vertices_around_face(he, *mesh_);
-
-        for (auto vertex : vertices)
-            free_vertices.push_back(vertex);
-    }
-    free_vertices
-
-    for (auto metaplane : metaplanes) {
-        (void)metaplane.compute_points_std();
-    }
-
-
-    for (auto metaplane : metaplanes) {
-        metaplane.compute_points_std();
-    }
-
-
-
-
-
+    post_process_free_points(metaplanes);
+    std::cout << " Points. Done. Time: " << t.time()  << std::flush;
+    post_process_free_faces(metaplanes);
+    std::cout << " Faces. Done. Time: " << t.time()  << std::flush;
     t.stop();
     std::cout << " Done. Time: " << t.time() << std::endl;
 }
 
 void MeshPlaneDetector::post_process_free_points(std::vector<Metaplane>& metaplanes) {
 
+    /// 1. Compute STD \
+    /// 2. Find vertices neighbors \
+    /// 3. Compare neighbors. True - If vertex less than STD \
+    /// 4.
+
+    auto vertex_color_map = mesh_->add_property_map<vertex_descriptor, CGAL::IO::Color>
+    ("v:color").first;
+
+    for (auto face_id : free_faces) {
+        auto hf = mesh_->halfedge(face_id);
+        auto free_face_vertices = mesh_->vertices_around_face(hf);
+
+        for (auto vertex_id : free_face_vertices) {
+           if (vertex_plane_id_map[vertex_id].empty()) {
+               auto point = mesh_->point(vertex_id);
+               auto min_metaplane = min_dist_to_plane_id(metaplanes, point);
+
+               vertex_plane_id_map[vertex_id] = min_metaplane.id;
+
+               volatile auto f_min_id = min_metaplane.faces.begin()->id();
+               face_descriptor fd(f_min_id);
+
+               vertex_color_map[vertex_id] = face_color_map[fd];
+           }
+        }
+    }
+}
+
+void MeshPlaneDetector::post_process_free_faces(std::vector<Metaplane>& metaplanes) {
+    volatile int a = 0;
+    for (auto face_id : free_faces) {
+        auto hf = mesh_->halfedge(face_id);
+        auto face_vertices = mesh_->vertices_around_face(hf);
+        a++;
+        auto centroid = face_centroid_map[face_id];
+        auto min_metaplane = min_dist_to_plane_id(metaplanes, centroid);
+
+        face_plane_id_map[face_id] = min_metaplane.id;
+        auto f = min_metaplane.faces.begin();
+        face_descriptor fd(f->id());
+        face_color_map[face_id] = face_color_map[fd];
+    }
 }
 
 MeshPlaneDetector::MeshPlaneDetector(Mesh &mesh) : mesh_(&mesh) {
     vertex_plane_id_map = mesh.add_property_map<vertex_descriptor, std::string>
-    (MeshProperty::vertex_plane_id).first;
+    (MeshProperty::vertex_plane_id, "").first;
 
     face_centroid_map = mesh_->add_property_map<face_descriptor, Point>
             (MeshProperty::face_centroid).first;
@@ -142,7 +159,7 @@ MeshPlaneDetector::MeshPlaneDetector(Mesh &mesh) : mesh_(&mesh) {
     (MeshProperty::face_area).first;
 
     face_plane_id_map = mesh_->add_property_map<face_descriptor, std::string>
-    (MeshProperty::face_plane_id).first;
+    (MeshProperty::face_plane_id, "").first;
 
     face_color_map = mesh_->add_property_map<face_descriptor, CGAL::IO::Color>
     (MeshProperty::face_color, CGAL::IO::Color(34, 34, 34)).first;

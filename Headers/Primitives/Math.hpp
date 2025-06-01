@@ -5,8 +5,6 @@
 
 #define PRECISION_EPSILON 0.1
 
-#include <iostream>
-
 namespace Math {
     static double cosine_between(const Vector& v1, const Vector& v2) {
         double dot_product = v1 * v2;
@@ -73,7 +71,4 @@ namespace Math {
     }
 
 }
-
-
-
 #endif
