@@ -32,6 +32,16 @@ PointCloud::PointCloud(const std::string& cloud_filepath) {
 
 }
 
+PointCloud::PointCloud(const Points &points) {
+    for (auto& p : points) {
+        auto uuid = uuid_generator();
+        auto uuidString = boost::lexical_cast<std::string>(uuid);
+
+        auto pair = std::pair(p, uuidString);
+        this->points.push_back(pair);
+    }
+}
+
 Point_vector PointCloud::getPoints() {
     return points;
 };

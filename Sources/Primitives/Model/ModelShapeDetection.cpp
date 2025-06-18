@@ -5,12 +5,12 @@
 #include <CGAL/Timer.h>
 
 std::pair<assignedType, unassignedType> Model::regionGrowingShapeDetection(
-        const float epsilon, const float max_angle, const int min_size) {
+        Mesh mesh, const float epsilon, const float max_angle, const int min_size) {
     CGAL::Timer t;
     t.start();
 
-    std::cout << "Detecting Shapes..." << std::flush;
-    const auto& face_range = faces(mesh_);
+    std::cout << "Detecting Shapes using Region Growing..." << std::flush;
+    const auto& face_range = faces(mesh);
 
     // Default parameter values for the data file building.off.
     const FT max_distance = FT(epsilon);
@@ -18,10 +18,10 @@ std::pair<assignedType, unassignedType> Model::regionGrowingShapeDetection(
     const std::size_t min_region_size = min_size;
 
     // Create instances of the classes Neighbor_query and Region_type.
-    Neighbor_query neighbor_query(mesh_);
+    Neighbor_query neighbor_query(mesh);
 
     Region_type region_type(
-            mesh_,
+            mesh,
             CGAL::parameters::
                     maximum_distance(max_distance).
             maximum_angle(angle).
@@ -29,7 +29,7 @@ std::pair<assignedType, unassignedType> Model::regionGrowingShapeDetection(
 
     // Sort face indices.
     Sorting sorting(
-            mesh_, neighbor_query);
+            mesh, neighbor_query);
     sorting.sort();
 
     // Create an instance of the region growing class.
@@ -64,3 +64,4 @@ std::pair<assignedType, unassignedType> Model::regionGrowingShapeDetection(
 
     return std::make_pair(regions, unassigned);
 }
+

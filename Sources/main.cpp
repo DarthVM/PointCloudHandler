@@ -9,8 +9,8 @@
 int main(int argc, char* argv[]) {
 
     const std::string cloud = "C:/Users/xdoyo/Desktop/TestData/cube.xyz";
-    const std::string pre_output = "C:/Users/xdoyo/Desktop/TestData/metaplanes_test.ply";
-    const std::string post_output = "C:/Users/xdoyo/Desktop/TestData/post_metaplanes_test.ply";
+    const std::string pre_output = "C:/Users/xdoyo/Desktop/TestData/big_metaplanes_test_2.ply";
+    const std::string post_output = "C:/Users/xdoyo/Desktop/TestData/Points/big_retriangulation.ply";
 
     CGAL::Timer t;
     t.start();
@@ -20,15 +20,21 @@ int main(int argc, char* argv[]) {
 
     MeshPlaneDetector plane_detector(triangulated_cloud);
 
-    auto metaplanes = plane_detector.detect(10, 1);
-
+    auto metaplanes = plane_detector.detect(20, 1);
+    std::cout << metaplanes.size() << std::endl;
     Model::save(triangulated_cloud, pre_output);
 
-    plane_detector.post_process(metaplanes);
+    plane_detector.process_free_objects(metaplanes);
 
-    Model final_mesh(triangulated_cloud);
+    auto total_mesh = plane_detector.retriangulate(metaplanes);
 
-    final_mesh.save(post_output);
+    MeshPlaneDetector plane_detector2(total_mesh);
+    plane_detector2.detect(20, 1);
+
+    Model::save(total_mesh, post_output);
+
+    // Model final_mesh(triangulated_cloud);
+    // final_mesh.save(post_output);
 
     t.stop();
 

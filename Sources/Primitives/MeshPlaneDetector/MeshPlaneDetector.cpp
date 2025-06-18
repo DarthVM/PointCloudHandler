@@ -1,7 +1,7 @@
 #include "../../../Headers/typedefs.h"
+#include "../../../Headers/Primitives/PointCloud.h"
 #include "../../../Headers/Primitives/MeshPlaneDetector.h"
 #include "../../../Headers/Primitives/Math.hpp"
-
 
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
@@ -70,79 +70,55 @@ std::vector<Metaplane> MeshPlaneDetector::detect(const size_t min_region_size, c
 
         if (result.size() >= min_region_size) {
             erase_from_free_faces(result);
-            set_plane_color(result);
+            set_faces_color(result);
 
             Metaplane metaplane(*mesh_, result);
-            metaplane.print_info();
+            //std::cout << metaplane;
 
             metaplanes.push_back(metaplane);
         }
-
     }
+    std::cout << "Free Faces: " << free_faces.size() << std::endl;
     t.stop();
     std::cout << " Done. Time: " << t.time() << std::endl;
 
     return metaplanes;
 }
 
-void MeshPlaneDetector::post_process(std::vector<Metaplane>& metaplanes) {
+void MeshPlaneDetector::process_free_objects(std::vector<Metaplane>& metaplanes) {
     std::cout << "Post-processing metaplanes...";
 
     CGAL::Timer t;
     t.start();
 
-    post_process_free_points(metaplanes);
+    process_free_points(metaplanes);
     std::cout << " Points. Done. Time: " << t.time()  << std::flush;
-    post_process_free_faces(metaplanes);
-    std::cout << " Faces. Done. Time: " << t.time()  << std::flush;
+
+
+    // process_free_faces(metaplanes);
+    // std::cout << " Faces. Done. Time: " << t.time()  << std::flush;
+
     t.stop();
     std::cout << " Done. Time: " << t.time() << std::endl;
 }
 
-void MeshPlaneDetector::post_process_free_points(std::vector<Metaplane>& metaplanes) {
+Mesh MeshPlaneDetector::retriangulate(std::vector<Metaplane>& metaplanes) {
+    Mesh total_mesh;
+    for (auto metaplane : metaplanes) {
+        Points points;
+        auto mesh_vertices = metaplane.vertices;
 
-    /// 1. Compute STD \
-    /// 2. Find vertices neighbors \
-    /// 3. Compare neighbors. True - If vertex less than STD \
-    /// 4.
-
-    auto vertex_color_map = mesh_->add_property_map<vertex_descriptor, CGAL::IO::Color>
-    ("v:color").first;
-
-    for (auto face_id : free_faces) {
-        auto hf = mesh_->halfedge(face_id);
-        auto free_face_vertices = mesh_->vertices_around_face(hf);
-
-        for (auto vertex_id : free_face_vertices) {
-           if (vertex_plane_id_map[vertex_id].empty()) {
-               auto point = mesh_->point(vertex_id);
-               auto min_metaplane = min_dist_to_plane_id(metaplanes, point);
-
-               vertex_plane_id_map[vertex_id] = min_metaplane.id;
-
-               volatile auto f_min_id = min_metaplane.faces.begin()->id();
-               face_descriptor fd(f_min_id);
-
-               vertex_color_map[vertex_id] = face_color_map[fd];
-           }
+        for (auto vertex_id : mesh_vertices) {
+            auto point = mesh_->point(vertex_id);
+            points.push_back(point);
         }
-    }
-}
 
-void MeshPlaneDetector::post_process_free_faces(std::vector<Metaplane>& metaplanes) {
-    volatile int a = 0;
-    for (auto face_id : free_faces) {
-        auto hf = mesh_->halfedge(face_id);
-        auto face_vertices = mesh_->vertices_around_face(hf);
-        a++;
-        auto centroid = face_centroid_map[face_id];
-        auto min_metaplane = min_dist_to_plane_id(metaplanes, centroid);
-
-        face_plane_id_map[face_id] = min_metaplane.id;
-        auto f = min_metaplane.faces.begin();
-        face_descriptor fd(f->id());
-        face_color_map[face_id] = face_color_map[fd];
+        PointCloud post_cloud(points);
+        auto mesh = post_cloud.reconstructFront();
+        total_mesh += mesh;
     }
+
+    return total_mesh;
 }
 
 MeshPlaneDetector::MeshPlaneDetector(Mesh &mesh) : mesh_(&mesh) {

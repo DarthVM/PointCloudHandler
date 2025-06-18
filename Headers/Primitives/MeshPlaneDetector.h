@@ -21,17 +21,18 @@ private:
 
     void erase_from_free_faces(Face_set& result);
 
-    static Metaplane min_dist_to_plane_id(const std::vector<Metaplane>& metaplanes, Point& point);
+    static Metaplane* min_dist_to_plane_id(const std::vector<Metaplane>& metaplanes, Point& point);
 
     Face_set conditional_bfs(const face_descriptor& start_face, Face_set& face_set, double max_angle);
 
-    void post_process_free_points(std::vector<Metaplane>& metaplanes);
-    void post_process_free_faces(std::vector<Metaplane>& metaplanes);
+    void process_free_points(std::vector<Metaplane>& metaplanes);
+    void process_free_faces(std::vector<Metaplane>& metaplanes);
 public:
     explicit MeshPlaneDetector(Mesh &mesh);
     std::vector<Metaplane> detect(size_t min_region_size, double max_angle);
-    void post_process(std::vector<Metaplane>& metaplanes);
-    void set_plane_color(const Face_set& face_set);
+    void process_free_objects(std::vector<Metaplane>& metaplanes);
+    Mesh retriangulate(std::vector<Metaplane>& metaplanes);
+    void set_faces_color(const Face_set& face_set);
     static face_descriptor get_middle_element(const Face_set& faces);
 };
 #endif
