@@ -10,6 +10,7 @@ private:
     Point_vector points;
 public:
     PointCloud(const std::string &cloud_filepath);
+    PointCloud(const Points &points);
     Point_vector getPoints();
     /** \brief Save given point cloud as file
          \param[in] output_filepath path to the output file

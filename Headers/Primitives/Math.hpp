@@ -45,9 +45,9 @@ namespace Math {
         return std::sqrt(CGAL::squared_distance(p, plane));
     }
 
-    static double weight(double area) { return 1 / (2 * area); }
+    static double weight(double area = 1) { return area; }
 
-    static double points_to_plane_dist_std(Mesh& mesh, Plane& plane, Vertices& vertices) {
+    static double points_to_plane_dist_std(Mesh& mesh, Plane& plane, Vertex_set& vertices) {
         const auto size = vertices.size();
         double distance[size];
         double sum = 0;

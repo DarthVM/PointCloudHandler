@@ -6,25 +6,25 @@
 class Metaplane {
 public:
     std::string id;
-    Vertices vertices;
+    Vertex_set vertices;
     Face_set faces;
     Point centroid;
-    Vector mean_normal;
+    Vector normal;
     double area;
     double points_std;
-    std::string color;
+    CGAL::IO::Color color;
 
     Metaplane(Mesh& mesh, Face_set& faces);
     Metaplane() = default;
-    Plane get_plane() const;
-    void print_info() const;
+    friend std::ostream& operator<<(std::ostream& os, const Metaplane& metaplane);
     double compute_points_std();
-    void add_free_vertex(vertex_descriptor& vertex);
-    void init_plane_ids();
-    void init_plane_area();
-    void init_plane_normal();
+    void calculate_area();
 private:
     Mesh *mesh_;
-    Vertices free_vertices_;
+
+    void init_indices();
+    void init_area();
+    void init_normal();
+    void extract_vertices();
 };
 #endif

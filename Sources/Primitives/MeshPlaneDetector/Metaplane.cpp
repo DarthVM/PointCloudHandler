@@ -12,45 +12,31 @@ Metaplane::Metaplane(Mesh& mesh, Face_set& faces) : mesh_(&mesh), faces(faces) {
     auto uuidString = boost::lexical_cast<std::string>(uuid);
     this->id = uuidString;
 
-    init_plane_ids();
-    init_plane_area();
-    init_plane_normal();
-
+    init_indices();
+    init_area();
+    init_normal();
+    extract_vertices();
 };
 
-void Metaplane::print_info() const {
-    std::cout
-    << "\nPlane id: " << id
-    << "\n * faces: " << faces.size()
-    << "\n * normal: " << mean_normal
-    << "\n * area: " << area
-    << "\n * color: " << "not supported"
-    << std::endl;
+std::ostream& operator<<(std::ostream& os, const Metaplane& metaplane) {
+    return os
+    << "\nPlane id: " << metaplane.id
+    << "\n * faces: " << metaplane.faces.size()
+    << "\n * normal: " << metaplane.normal
+    << "\n * area: " << metaplane.area
+    << "\n * color: " << "not supported";
 }
 
-Plane Metaplane::get_plane() const { return Plane(centroid, mean_normal); }
-
 double Metaplane::compute_points_std() {
-    for (auto face : faces) {
-        auto he = mesh_->halfedge(face);
-        auto face_vertices = CGAL::vertices_around_face(he, *mesh_);
 
-        for (auto vertex : face_vertices)
-            vertices.push_back(vertex);
-    }
-
-    auto plane = get_plane();
+    auto plane = Plane(centroid, normal);
     points_std = Math::points_to_plane_dist_std(*mesh_, plane, vertices);
 
     return points_std;
 }
 
-void Metaplane::add_free_vertex(vertex_descriptor& vertex) {
-    free_vertices_.push_back(vertex);
-}
 
-
-void Metaplane::init_plane_ids() {
+void Metaplane::init_indices() {
     auto vertex_plane_id_map = mesh_->property_map<vertex_descriptor, std::string>
             (MeshProperty::vertex_plane_id).value();
     auto face_plane_id_map = mesh_->property_map<face_descriptor, std::string>
@@ -67,7 +53,7 @@ void Metaplane::init_plane_ids() {
     }
 }
 
-void Metaplane::init_plane_area() {
+void Metaplane::init_area() {
     auto face_area_map = mesh_->property_map<face_descriptor, double>
            (MeshProperty::face_area).value();
     double sum_area = .0;
@@ -80,7 +66,7 @@ void Metaplane::init_plane_area() {
     area = sum_area;
 }
 
-void Metaplane::init_plane_normal() {
+void Metaplane::init_normal() {
     auto face_normal_map = mesh_->property_map<face_descriptor, Vector>
         (MeshProperty::face_normal).value();
 
@@ -91,5 +77,33 @@ void Metaplane::init_plane_normal() {
         sum_normals += face_normal_map[faceId];
     }
 
-    mean_normal = sum_normals / sum_normals.squared_length();
+    normal = sum_normals / sum_normals.squared_length();
 }
+
+void Metaplane::calculate_area() {
+    auto face_area_map = mesh_->property_map<face_descriptor, double>
+           (MeshProperty::face_area).value();
+    double sum_area = .0;
+
+    for (auto faceId : faces) {
+        face_area_map[faceId] = CGAL::Polygon_mesh_processing::face_area(faceId, *mesh_);
+        sum_area += face_area_map[faceId];
+    }
+
+    area = sum_area;
+}
+
+void Metaplane::extract_vertices() {
+    for (auto faceId : faces) {
+
+        auto he = mesh_->halfedge(faceId);
+        auto face_vertices = CGAL::vertices_around_face(he, *mesh_);
+
+        for (auto vertex : face_vertices) {
+            if (vertices.find(vertex) == vertices.end())
+                vertices.insert(vertex);
+        }
+    }
+}
+
+
